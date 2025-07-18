@@ -3,8 +3,8 @@
 <body>
     <h1>Passkeys</h1>
 
-    <button id="btn">Sign in with a Passkey</button>
-    <button id="btnLocal">Sign in with a Passkey (locally)</button>
+    <button id="btn">Register a Passkey</button>
+    <button id="btnLogin">Log in with Passkey</button>
 
     <script>
         function base64ToUint8Array(base64) {
@@ -16,7 +16,7 @@
             return bytes;
         }
 
-        const register = true;
+
 
         document.getElementById("btn").addEventListener(
             "click",
@@ -36,98 +36,6 @@
                 console.log(challenge);
                 console.log(userId);
 
-                if (register) {
-                    const publicKey = {
-                        challenge: challenge,
-                        rp: { id: window.location.hostname, name: "passkeys_server Demo" },
-                        user: {
-                            id: userId,
-                            name: "",
-                            displayName: "",
-                        },
-                        pubKeyCredParams: [
-                            // Works on everything but Windows, but 2 more are (soon) required https://fidoalliance.org/specs/fido-v2.0-rd-20180702/fido-server-v2.0-rd-20180702.html#other
-                            { type: "public-key", alg: -7 },
-                            // { type: "public-key", alg: -257 },
-                        ],
-                        // https://www.corbado.com/glossary/authenticatorselection
-                    };
-
-                    const publicKeyCredential = await navigator.credentials.create({ publicKey });
-
-                    console.log(publicKeyCredential);
-
-                    if (publicKeyCredential) {
-                        const publicKey = publicKeyCredential.toJSON();
-
-                        console.log('publicKey JSON');
-                        console.log(publicKey);
-
-
-                        const params = new URLSearchParams();
-                        params.append("userId", receivedUserId);
-                        params.append("keyId", publicKey['id']);
-                        params.append("clientDataJSON", publicKey['response']['clientDataJSON']);
-                        params.append("publicKey", publicKey['response']['publicKey']);
-                        params.append("publicKeyAlgorithm", publicKey['response']['publicKeyAlgorithm']);
-                        params.append("attestationObject", publicKey['response']['attestationObject']);
-                        params.append("authenticatorData", publicKey['response']['authenticatorData']);
-
-                        const response = await fetch(
-                            `/api/finish-registration?${params}`,
-                            {
-                                method: "POST",
-                            },
-                        );
-                    }
-                } else {
-                    const publicKey = {
-                        challenge: challenge,
-                        rpId: window.location.hostname,
-                        allowCredentials: [
-                            // {
-                            //     type: "public-key",
-                            //     id: new Uint8Array([64, 66, 25, 78, 168, 226, 174 /* … */]),
-                            // },
-                        ],
-                        userVerification: "required",
-                    };
-
-                    const publicKeyCredential = await navigator.credentials.get({ publicKey });
-
-                    console.log(publicKeyCredential);
-
-                    if (publicKeyCredential) {
-                        const publicKey = publicKeyCredential.toJSON();
-                        console.log(publicKey);
-                    }
-
-                    // id: "wQRZiaM5jQMJxkn6f9rNQQ"
-                    // authenticatorData: "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MdAAAAAA"
-                    // clientDataJSON: "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoieHVjdDRWQ0p3NW1WZ1RvclB2UDZtMEhGdV9LVUlPRUR5RnQ4bzl2QW5BbyIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MCIsImNyb3NzT3JpZ2luIjpmYWxzZX0"
-                    // signature: "MEUCIQChyWANjSv1XpbOZOlwsueE11kVDeub2sYL6O1ft_7qUgIgUC6P8Kr1_VWsbEN1mQ3nzvKw_4FGQjhCY0pDxcgDomM"
-                    // userHandle: "WY8o5ZIaQg6KpVXc8xeg8w"
-                }
-            },
-        );
-
-        document.getElementById("btnLocal").addEventListener(
-            "click",
-            async () => {
-                const response = await fetch(
-                    `/api/new-user`,
-                    {
-                        method: "POST",
-                    },
-                );
-                const responseBody = await response.json();
-
-                const receivedUserId = responseBody['userId'];
-                const challenge = base64ToUint8Array(responseBody['challenge']);
-                const userId = base64ToUint8Array(receivedUserId);
-
-                console.log(challenge);
-                console.log(userId);
 
                 const publicKey = {
                     challenge: challenge,
@@ -137,15 +45,22 @@
                         name: "",
                         displayName: "",
                     },
-                    pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
+                    pubKeyCredParams: [
+                        // Works on everything but Windows, but 2 more are (soon) required https://fidoalliance.org/specs/fido-v2.0-rd-20180702/fido-server-v2.0-rd-20180702.html#other
+                        { type: "public-key", alg: -7 },
+                        // { type: "public-key", alg: -257 },
+                    ],
+                    // https://www.corbado.com/glossary/authenticatorselection
                 };
 
-                const publicKeyCredentialReg = await navigator.credentials.create({ publicKey });
+                const publicKeyCredential = await navigator.credentials.create({ publicKey });
 
-                console.log(publicKeyCredentialReg);
+                console.log(publicKeyCredential);
 
-                if (publicKeyCredentialReg) {
-                    const publicKey = publicKeyCredentialReg.toJSON();
+                if (publicKeyCredential) {
+                    const publicKey = publicKeyCredential.toJSON();
+
+                    console.log('publicKey JSON');
                     console.log(publicKey);
 
 
@@ -166,43 +81,61 @@
                     );
                 }
 
-                const publicKeyConfigLogin = {
+            },
+        );
+
+        document.getElementById("btnLogin").addEventListener(
+            "click",
+            async () => {
+                const response = await fetch(
+                    `/api/new-user`,
+                    {
+                        method: "POST",
+                    },
+                );
+                const responseBody = await response.json();
+
+                const receivedUserId = responseBody['userId'];
+                const challenge = base64ToUint8Array(responseBody['challenge']);
+                const userId = base64ToUint8Array(receivedUserId);
+
+                const publicKey = {
                     challenge: challenge,
                     rpId: window.location.hostname,
                     allowCredentials: [
-                        {
-                            type: "public-key",
-                            id: publicKeyCredentialReg.rawId,
-                        },
+                        // {
+                        //     type: "public-key",
+                        //     id: new Uint8Array([64, 66, 25, 78, 168, 226, 174 /* … */]),
+                        // },
                     ],
                     userVerification: "required",
                 };
 
-                const publicKeyCredentialLogin = await navigator.credentials.get({ publicKey: publicKeyConfigLogin });
+                const publicKeyCredential = await navigator.credentials.get({ publicKey });
 
-                console.log(publicKeyCredentialLogin);
+                console.log(publicKeyCredential);
 
-                if (publicKeyCredentialLogin) {
-                    const response = publicKeyCredentialLogin.response;
-                    const publicKey = publicKeyCredentialLogin.toJSON();
+                if (publicKeyCredential) {
+                    const publicKey = publicKeyCredential.toJSON();
                     console.log(publicKey);
 
+                    const params = new URLSearchParams();
+                    params.append("loginId", receivedUserId);
+                    params.append("keyId", publicKey['id']);
+                    params.append("clientDataJSON", publicKey['response']['clientDataJSON']);
+                    params.append("signature", publicKey['response']['signature']);
+                    params.append("authenticatorData", publicKey['response']['authenticatorData']);
 
-                    const key = await importPublicKey(publicKeyCredentialReg.response.publicKey, { name: 'ECDSA', namedCurve: 'P-256' });
-
-                    const hashedClientDataJSON = await globalThis.crypto.subtle.digest('SHA-256', response.clientDataJSON);
-                    const data = mergeBuffer(response.authenticatorData, hashedClientDataJSON);
-
-                    const signature = convertEcdsaAsn1Signature(new Uint8Array(response.signature));
-
-                    const verified = await globalThis.crypto.subtle.verify({
-                        name: 'ECDSA',
-                        hash: 'ES256'
-                    }, key, signature, data);
-
+                    const response = await fetch(
+                        `/api/login?${params}`,
+                        {
+                            method: "POST",
+                        },
+                    );
                 }
 
-                // id: "wQRZiaM5jQMJxkn6f9rNQQ"
+                // loginId: "-"
+                // keyId: "wQRZiaM5jQMJxkn6f9rNQQ"
                 // authenticatorData: "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MdAAAAAA"
                 // clientDataJSON: "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoieHVjdDRWQ0p3NW1WZ1RvclB2UDZtMEhGdV9LVUlPRUR5RnQ4bzl2QW5BbyIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MCIsImNyb3NzT3JpZ2luIjpmYWxzZX0"
                 // signature: "MEUCIQChyWANjSv1XpbOZOlwsueE11kVDeub2sYL6O1ft_7qUgIgUC6P8Kr1_VWsbEN1mQ3nzvKw_4FGQjhCY0pDxcgDomM"

@@ -1,19 +1,21 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
-import 'dart:typed_data';
 
+import 'package:passkeys_server/passkeys_server.dart';
 import 'package:relic/io_adapter.dart';
 import 'package:relic/relic.dart';
-import 'package:uuid/uuid.dart';
 
-final pendingRegistrations = <UuidValue, Uint8List>{};
+final passkeys = Passkeys(
+  config: PasskeysConfig(relyingPartyId: 'localhost'),
+  storage: InMemoryPasskeyStorage(),
+);
 
 Future<void> startServer() async {
   // Setup router
   final router = Router<Handler>()
     ..post('/api/new-user', newUser)
     ..post('/api/finish-registration', registerPublicKey)
+    ..post('/api/login', loginWithKey)
 
     // // Health check path for render.com
     // ..get('/healthz', healthCheck)
@@ -31,18 +33,15 @@ Future<void> startServer() async {
   print('Serving at http://localhost:$port');
 }
 
-ResponseContext newUser(final RequestContext ctx) {
-  final userId = Uuid().v4obj();
-  final challenge = Uint8ListUtil.random(32);
-
-  pendingRegistrations[userId] = challenge;
+Future<ResponseContext> newUser(final RequestContext ctx) async {
+  final d = await passkeys.createRegistrationChallenge();
 
   return (ctx as RespondableContext).withResponse(
     Response.ok(
       body: Body.fromString(
         jsonEncode({
-          'userId': base64Encode(userId.toBytes()),
-          'challenge': base64Encode(challenge),
+          'userId': base64Encode(d.userId),
+          'challenge': base64Encode(d.challenge),
         }),
         mimeType: MimeType.json,
       ),
@@ -50,11 +49,10 @@ ResponseContext newUser(final RequestContext ctx) {
   );
 }
 
-ResponseContext registerPublicKey(final RequestContext ctx) {
+Future<ResponseContext> registerPublicKey(final RequestContext ctx) async {
   try {
-    final userId = UuidValue.fromByteList(
-      base64Decode(ctx.request.requestedUri.queryParameters['userId']!),
-    );
+    final userId =
+        base64Decode(ctx.request.requestedUri.queryParameters['userId']!);
 
     final keyId = ctx.request.requestedUri.queryParameters['keyId']!;
     final publicKey = ctx.request.requestedUri.queryParameters['publicKey']!;
@@ -74,8 +72,15 @@ ResponseContext registerPublicKey(final RequestContext ctx) {
     print('final clientDataJSON = "$clientDataJSON";');
     print('final attestationObject  = "$attestationObject";');
     print('final authenticatorData = "$authenticatorData";');
-    print(
-      'final originalChallenge = "${base64Encode(pendingRegistrations[userId]!)}";',
+
+    await passkeys.verifyRegistration(
+      userId: userId,
+      keyId: base64Decode(padBase64(keyId)),
+      clientDataJSON: base64Decode(padBase64(clientDataJSON)),
+      publicKey: base64Decode(padBase64(publicKey)),
+      publicKeyAlgorithm: int.parse(publicKeyAlgorithm),
+      attestationObject: base64Decode(padBase64(attestationObject)),
+      authenticatorData: base64Decode(padBase64(authenticatorData)),
     );
   } catch (e, s) {
     print(e);
@@ -88,6 +93,31 @@ ResponseContext registerPublicKey(final RequestContext ctx) {
   // Verifying that the challenge is the same as the challenge that was sent.
   // Ensuring that the origin was the origin expected.
   // Validating that the signature and attestation are using the correct certificate chain for the specific model of the authenticator used to generate the key pair in the first place.
+}
+
+Future<ResponseContext> loginWithKey(final RequestContext ctx) async {
+  try {
+    await passkeys.verifyLogin(
+      loginId: base64Decode(
+          padBase64(ctx.request.requestedUri.queryParameters['loginId']!)),
+      keyId: base64Decode(
+          padBase64(ctx.request.requestedUri.queryParameters['keyId']!)),
+      authenticatorData: base64Decode(padBase64(
+          ctx.request.requestedUri.queryParameters['authenticatorData']!)),
+      clientDataJSON: base64Decode(padBase64(
+          ctx.request.requestedUri.queryParameters['clientDataJSON']!)),
+      signature: base64Decode(
+          padBase64(ctx.request.requestedUri.queryParameters['signature']!)),
+      // userHandle: base64Decode(padBase64(ctx.request.requestedUri.queryParameters['userHandle']!)),
+    );
+  } catch (e, s) {
+    print(e);
+    print(s);
+
+    rethrow;
+  }
+
+  return (ctx as RespondableContext).withResponse(Response.ok());
 }
 
 ResponseContext homepage(final RequestContext ctx) {
@@ -105,12 +135,12 @@ ResponseContext fallback404(final RequestContext ctx) {
   return (ctx as RespondableContext).withResponse(Response.notFound());
 }
 
-final Random _rng = Random.secure();
+String padBase64(String s) {
+  // Instead use: base64Url.decode(source)
 
-extension Uint8ListUtil on Uint8List {
-  static Uint8List random(int length) {
-    return Uint8List.fromList(
-      List<int>.generate(length, (i) => _rng.nextInt(256)),
-    );
+  while (s.length % 4 != 0) {
+    s += "=";
   }
+
+  return s;
 }
