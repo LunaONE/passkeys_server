@@ -7,7 +7,6 @@ import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:passkeys_server/src/config.dart';
 import 'package:passkeys_server/src/rng.dart';
 import 'package:passkeys_server/src/storage.dart';
-import 'package:uuid/uuid.dart';
 
 class Passkeys {
   Passkeys({
@@ -30,10 +29,13 @@ class Passkeys {
         Uint8List challenge,
         Uint8List userId,
       })> createRegistrationChallenge() async {
-    final userId = Uuid().v4obj().toBytes();
+    final userId = Uint8ListUtil.random(16);
     final challenge = Uint8ListUtil.random(32);
 
-    _storage.storeRegistrationChallenge(userId: userId, challenge: challenge);
+    await _storage.storeRegistrationChallenge(
+      userId: userId,
+      challenge: challenge,
+    );
 
     return (challenge: challenge, userId: userId);
   }
@@ -51,15 +53,13 @@ class Passkeys {
     final rp256 = sha256.convert(utf8.encode(_config.relyingPartyId)).bytes;
     final clientHash = Uint8List.sublistView(authenticatorData, 0, 32);
 
-    print('verify registration');
-    print(rp256);
-    print(clientHash);
-
     if (!bytesEqual(rp256, clientHash)) {
-      throw 'unequal reg data';
+      throw Exception(
+        'Client did not provide correct hash in authenticator data',
+      );
     }
 
-    _storage.storeRegistration(
+    await _storage.storeRegistration(
       userId: userId,
       keyId: keyId,
       clientDataJSON: clientDataJSON,
@@ -75,10 +75,10 @@ class Passkeys {
         Uint8List challenge,
         Uint8List loginId,
       })> createLoginChallenge() async {
-    final loginId = Uuid().v4obj().toBytes();
+    final loginId = Uint8ListUtil.random(16);
     final challenge = Uint8ListUtil.random(32);
 
-    _storage.storeLoginChallenge(id: loginId, challenge: challenge);
+    await _storage.storeLoginChallenge(id: loginId, challenge: challenge);
 
     return (challenge: challenge, loginId: loginId);
   }
@@ -100,10 +100,12 @@ class Passkeys {
     final key = ECPublicKey.bytes(publicKey);
 
     final clientData = jsonDecode(utf8.decode(clientDataJSON)) as Map;
-    final clientChallege = base64Decode(padBase64(clientData['challenge']));
+    final clientChallege = base64Decode(
+      padBase64(clientData['challenge'] as String),
+    );
 
     if (!bytesEqual(originalChallenge, clientChallege)) {
-      throw 'did not solve correct challenge';
+      throw Exception('Challenge was not solved correctly.');
     }
 
     final signedData = Uint8List.fromList([
@@ -111,16 +113,14 @@ class Passkeys {
       ...sha256.convert(clientDataJSON).bytes,
     ]);
 
-    final valid = ECDSAAlgorithm('ES256').verify(
+    final valid = const ECDSAAlgorithm('ES256').verify(
       key,
       signedData,
       derToRawSignature(signature),
     );
 
-    print('is valid $valid');
-
     if (!valid) {
-      throw 'invalid login';
+      throw Exception('Invalid signature');
     }
   }
 }
@@ -148,10 +148,13 @@ Uint8List derToRawSignature(Uint8List der) {
   final s = (seq.elements[1] as ASN1Integer).valueBytes();
 
   Uint8List padOrTrim(Uint8List v) {
-    if (v.length == 32) return v;
-    if (v.length > 32) return v.sublist(v.length - 32);
-    final out = Uint8List(32);
-    out.setRange(32 - v.length, 32, v);
+    if (v.length == 32) {
+      return v;
+    }
+    if (v.length > 32) {
+      return v.sublist(v.length - 32);
+    }
+    final out = Uint8List(32)..setRange(32 - v.length, 32, v);
     return out;
   }
 
@@ -162,10 +165,9 @@ Uint8List derToRawSignature(Uint8List der) {
 }
 
 String padBase64(String s) {
-  // Instead use: base64Url.decode(source)
-
   while (s.length % 4 != 0) {
-    s += "=";
+    // ignore: parameter_assignments, use_string_buffers
+    s += '=';
   }
 
   return s;

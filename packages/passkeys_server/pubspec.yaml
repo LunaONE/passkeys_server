@@ -1,0 +1,16 @@
+name: passkeys_server
+description: Server-side passkey utilities for support passkey-based registrations and logins.
+version: 0.1.0
+repository: https://github.com/LunaONE/passkeys_server
+
+environment:
+  sdk: ^3.5.4
+
+dependencies:
+  asn1lib: ^1.6.5
+  crypto: ^3.0.6
+  dart_jsonwebtoken: ^3.0.0
+
+dev_dependencies:
+  lints: ^4.0.0
+  test: ^1.24.0

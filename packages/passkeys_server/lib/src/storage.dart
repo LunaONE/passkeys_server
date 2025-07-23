@@ -62,12 +62,13 @@ class InMemoryPasskeyStorage implements PasskeyStorage {
 
   @override
   Future<Uint8List> getPublicKey({required Uint8List keyId}) async {
-    return _keys[base64Encode(keyId)]!.$1!;
+    return _keys[base64Encode(keyId)]!.$1;
   }
 
   @override
-  Future<Uint8List> receiveRegistrationChallenge(
-      {required Uint8List userId}) async {
+  Future<Uint8List> receiveRegistrationChallenge({
+    required Uint8List userId,
+  }) async {
     return _registrationChallenges.remove(base64Encode(userId))!;
   }
 

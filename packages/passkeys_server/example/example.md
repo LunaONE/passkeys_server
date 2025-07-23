@@ -1,0 +1,1 @@
+For how to set up a server to handle passkey-based registrations and logins see package [passkeys_server_relic](https://pub.dev/packages/passkeys_server_relic).
