@@ -1,10 +1,31 @@
 <html>
 
-<body>
-    <h1>Passkeys</h1>
+<head>
+    <title>Passkeys Server for Dart Demo</title>
+</head>
 
-    <button id="btn">Register a Passkey</button>
-    <button id="btnLogin">Log in with Passkey</button>
+
+<body>
+    <h1>Passkeys Server Demo</h1>
+
+    <p>
+
+        <a href="https://pub.dev/packages/passkeys_server">Package on pub.dev</a>, <a
+            href="https://github.com/LunaONE/passkeys_server">Source code on GitHub</a>
+    </p>
+
+
+
+    <p>
+        <input id="pkName" placeholder="Passkey name" />
+        <br />
+        <br />
+        <button id="btn">Register a Passkey</button>
+
+        <hr />
+
+        <button id="btnLogin">Log in with Passkey</button>
+    </p>
 
     <script>
         function base64ToUint8Array(base64) {
@@ -50,7 +71,7 @@
                         { type: "public-key", alg: -7 },
                         // { type: "public-key", alg: -257 },
                     ],
-                    // https://www.corbado.com/glossary/authenticatorselection
+
                 };
 
                 const publicKeyCredential = await navigator.credentials.create({ publicKey });
