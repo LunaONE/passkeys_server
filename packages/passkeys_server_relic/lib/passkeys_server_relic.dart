@@ -6,7 +6,7 @@ import 'package:relic/relic.dart';
 
 final passkeys = Passkeys(
   config: PasskeysConfig(relyingPartyId: 'localhost'),
-  storage: InMemoryPasskeyStorage(),
+  // storage: InMemoryPasskeyStorage(),
 );
 
 Future<void> startServer() async {

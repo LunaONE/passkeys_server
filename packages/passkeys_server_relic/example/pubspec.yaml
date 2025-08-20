@@ -9,9 +9,11 @@ environment:
   sdk: ">=3.5.0 <4.0.0"
 
 dependencies:
-  relic: ^0.4.0
-  passkeys_server: ^1.0.0
+  cbor: ^6.3.5
   passkeys_server_relic: ^1.0.0
+  passkeys_server: ^1.0.0
+  relic: ^0.4.0
+  uuid: ^4.5.1
 
 dev_dependencies:
   lints: ">=3.0.0 <7.0.0"

@@ -25,9 +25,26 @@
         <hr />
 
         <button id="btnLogin">Log in with Passkey</button>
+
+        <hr />
+
+
+
+    <section>
+
+        <h3>Admin</h3>
+
+        <ul>
+            <li><a href="/admin/registered_keys">List keys</a></li>
+        </ul>
+    </section>
+
     </p>
 
     <script>
+        document.getElementById('pkName').value = new Date().toJSON().substring(0, 16);
+
+
         function base64ToUint8Array(base64) {
             const binaryString = atob(base64);
             const bytes = new Uint8Array(binaryString.length);
@@ -36,8 +53,6 @@
             }
             return bytes;
         }
-
-
 
         document.getElementById("btn").addEventListener(
             "click",
@@ -63,12 +78,13 @@
                     rp: { id: window.location.hostname, name: "passkeys_server Demo" },
                     user: {
                         id: userId,
-                        name: "",
+                        name: document.getElementById('pkName').value,
                         displayName: "",
                     },
                     pubKeyCredParams: [
-                        // Works on everything but Windows, but 2 more are (soon) required https://fidoalliance.org/specs/fido-v2.0-rd-20180702/fido-server-v2.0-rd-20180702.html#other
+                        // Works on everything but Windows, but 2 more (RS1 and P-256) are (soon) required https://fidoalliance.org/specs/fido-v2.0-rd-20180702/fido-server-v2.0-rd-20180702.html#other
                         { type: "public-key", alg: -7 },
+                        // The Windows Hello algorithm
                         // { type: "public-key", alg: -257 },
                     ],
 
