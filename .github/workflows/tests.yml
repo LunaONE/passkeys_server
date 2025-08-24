@@ -1,0 +1,47 @@
+name: Dart CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test ${{ matrix.package }} on Dart ${{ matrix.sdk }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        sdk: [3.5.0, stable]
+        package:
+          [
+            ./packages/passkeys_server,
+            ./packages/passkeys_server_relic,
+            ./packages/passkeys_server_relic/example,
+          ]
+    defaults:
+      run:
+        working-directory: ${{ matrix.package }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ matrix.sdk }}
+      - run: dart pub get
+      - run: dart format --set-exit-if-changed .
+      - run: dart analyze
+      - name: Test
+        # Ignore packages without tests
+        run: dart test || [ $? -eq 79 ]
+
+  build_docker_image:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout the repo
+        uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -f .render/Dockerfile -t passkey-demo-server .
