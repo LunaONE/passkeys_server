@@ -16,9 +16,6 @@ class PasskeyRepository {
             relyingPartyId: relyingPartyId,
           ),
         ),
-        // _challengesDir = Directory.fromUri(
-        //   storageRoot.uri.resolve('./challenges'),
-        // ),
         _publicKeysDir = Directory.fromUri(
           storageRoot.uri.resolve('./public_keys'),
         ) {
@@ -30,8 +27,6 @@ class PasskeyRepository {
   }
 
   final Passkeys _passkeys;
-
-  // final Directory _challengesDir;
 
   final Directory _publicKeysDir;
 
@@ -77,25 +72,18 @@ class PasskeyRepository {
     if (challengeData == null ||
         challengeData.createdAt
             .isBefore(DateTime.now().subtract(const Duration(minutes: 5)))) {
-      throw 'Challenge not found';
+      throw Exception('Challenge not found');
     }
 
     if (challengeData.kind != ChallengeKind.registration) {
-      throw 'wrong challenge kind';
+      throw Exception('wrong challenge kind');
     }
 
     await _passkeys.verifyRegistration(
-      // userId: challengeId,
-      // keyId: keyId,
-      // clientDataJSON: clientDataJSON,
-      // publicKey: publicKey,
-      // publicKeyAlgorithm: publicKeyAlgorithm,
-      // attestationObject: attestationObject,
       authenticatorData: authenticatorData,
-      // challenge: challengeData.challenge,
     );
 
-    final userId = Uuid().v4obj();
+    final userId = const Uuid().v4obj();
 
     final keyFile = Keyfile(
       keyId: keyId,
@@ -128,7 +116,7 @@ class PasskeyRepository {
     if (challengeData == null ||
         challengeData.createdAt
             .isBefore(DateTime.now().subtract(const Duration(minutes: 5)))) {
-      throw 'Challenge not found';
+      throw Exception('Challenge not found');
     }
 
     // if (challengeData.kind != ChallengeKind.registration) {
@@ -161,12 +149,8 @@ class PasskeyRepository {
     final keys = <Keyfile>[];
 
     for (final file in _publicKeysDir.listSync()) {
-      print(file);
       if (file is File) {
         final keyFile = await Keyfile.readFile(file);
-
-        // final userId = UuidValue.fromList(
-        //     (keyFileContent[CborString('userId')]! as CborBytes).bytes);
 
         keys.add(keyFile);
       }
@@ -181,7 +165,7 @@ enum ChallengeKind {
   login,
 }
 
-extension X on Uint8List {
+extension Uint8ListToBase64 on Uint8List {
   String toBase64Url() {
     return base64UrlEncode(this);
   }
