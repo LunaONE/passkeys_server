@@ -123,8 +123,6 @@ class PasskeyRepository {
     //   throw 'wrong challenge kind';
     // }
 
-    print('found key');
-
     await _passkeys.verifyLogin(
       loginId: loginId,
       key: (

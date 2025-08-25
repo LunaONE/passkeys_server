@@ -25,10 +25,11 @@ Future<void> startServer() async {
   final port = int.parse(Platform.environment['PORT'] ?? '8080');
   await serve(handler, InternetAddress.anyIPv4, port);
 
+  // ignore: avoid_print
   print('Serving at http://localhost:$port');
 }
 
-ResponseContext homepage(final RequestContext ctx) {
+ResponseContext homepage(RequestContext ctx) {
   return (ctx as RespondableContext).withResponse(
     Response.ok(
       body: Body.fromString(
@@ -39,6 +40,6 @@ ResponseContext homepage(final RequestContext ctx) {
   );
 }
 
-ResponseContext fallback404(final RequestContext ctx) {
+ResponseContext fallback404(RequestContext ctx) {
   return (ctx as RespondableContext).withResponse(Response.notFound());
 }
