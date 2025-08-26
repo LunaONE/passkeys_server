@@ -1,3 +1,7 @@
+## 0.2.1
+
+- Remove obsolete parameter from `verifyLogin` function
+
 ## 0.2.0
 
 - Remove built-in storage interface for increased flexibility

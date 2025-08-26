@@ -47,7 +47,6 @@ class Passkeys {
   }
 
   Future<void> verifyLogin({
-    required Uint8List loginId,
     required ({Uint8List publicKey, int algorithm}) key,
     required Uint8List authenticatorData,
     required Uint8List clientDataJSON,

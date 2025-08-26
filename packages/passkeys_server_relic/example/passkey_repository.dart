@@ -124,7 +124,6 @@ class PasskeyRepository {
     // }
 
     await _passkeys.verifyLogin(
-      loginId: loginId,
       key: (
         algorithm: keyFile.publicKeyAlgorithm,
         publicKey: keyFile.publicKey

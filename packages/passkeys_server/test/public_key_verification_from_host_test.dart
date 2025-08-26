@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:passkeys_server/passkeys_server.dart';
-import 'package:passkeys_server/src/rng.dart';
 import 'package:test/test.dart';
 
 void main() async {
@@ -32,8 +31,6 @@ void main() async {
           'MEUCIQDtgwZM-M-ilKkHwfOouoVb2pMuKwhzpmXFqT2yE6BEEAIgOl_OFgvmSf2fSfVe4NhgG6J2yWSp9eb1MvNt2xcU-CY';
       // const userHandle = 'bYtEO9HGQYim7iMnq7ox7Q';
 
-      final loginId = Uint8ListUtil.random(8);
-
       final challenge = base64.decode(padBase64(loginChallenge));
 
       final passkeys = Passkeys(
@@ -42,8 +39,6 @@ void main() async {
 
       await expectLater(
         passkeys.verifyLogin(
-          loginId: loginId,
-          // keyId: base64.decode(padBase64(loginKeyId)),
           key: (publicKey: base64.decode(padBase64(publicKey)), algorithm: -7),
           authenticatorData: base64.decode(padBase64(authenticatorData)),
           clientDataJSON: base64.decode(padBase64(clientDataJSON)),
