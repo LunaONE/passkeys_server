@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:asn1lib/asn1lib.dart';
+import 'package:cbor/cbor.dart';
 import 'package:crypto/crypto.dart';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:passkeys_server/src/config.dart';
@@ -25,24 +26,38 @@ class Passkeys {
 
   /// Throws if invalid
   Future<void> verifyRegistration({
-    // required Uint8List userId,
-    // required Uint8List keyId,
-    // required Uint8List clientDataJSON,
-    // required Uint8List publicKey,
-    // required int publicKeyAlgorithm,
-    // required Uint8List attestationObject,
     required Uint8List authenticatorData,
+    required Uint8List clientDataJSON,
+    required Uint8List attestationObject,
 
     /// The challenge created by the server for the client
-    // required Uint8List challenge,
+    required Uint8List challenge,
   }) async {
     final rp256 = sha256.convert(utf8.encode(_config.relyingPartyId)).bytes;
     final clientHash = Uint8List.sublistView(authenticatorData, 0, 32);
 
     if (!bytesEqual(rp256, clientHash)) {
       throw Exception(
-        'Client did not provide correct hash in authenticator data',
+        'Client did not provide correct rpId hash in authenticator data',
       );
+    }
+
+    final clientData = jsonDecode(utf8.decode(clientDataJSON)) as Map;
+    final clientChallege = base64Decode(
+      padBase64(clientData['challenge'] as String),
+    );
+
+    if (!bytesEqual(challenge, clientChallege)) {
+      throw Exception('The wrong challenge was solved by the client.');
+    }
+
+    final authData = ((cbor.decode(attestationObject)
+            as CborMap)[CborString('authData')]! as CborBytes)
+        .bytes;
+
+    if (!bytesEqual(authenticatorData, authData)) {
+      throw Exception(
+          'The embedded auth data did not match the high-level one.');
     }
   }
 
@@ -51,7 +66,7 @@ class Passkeys {
     required Uint8List authenticatorData,
     required Uint8List clientDataJSON,
     required Uint8List signature,
-    // required Uint8List userHandle,
+
     /// The challenge created by the server for the client
     required Uint8List challenge,
   }) async {
@@ -69,7 +84,7 @@ class Passkeys {
     );
 
     if (!bytesEqual(originalChallenge, clientChallege)) {
-      throw Exception('Challenge was not solved correctly.');
+      throw Exception('The wrong challenge was solved by the client.');
     }
 
     final signedData = Uint8List.fromList([

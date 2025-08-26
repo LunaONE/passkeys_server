@@ -5,19 +5,33 @@ import 'package:test/test.dart';
 
 void main() async {
   test('test key verification', () async {
+    final passkeys = Passkeys(
+      config: PasskeysConfig(relyingPartyId: 'localhost'),
+    );
+
     const publicKey =
         'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEkoCYhdhCvJfNoqD1pscWeiXJQF5G2RSeqDTE85g8nDv4rRfcgnxffuLLktXBqPm1Yx9X961Z74FLCwZ_oCuFMg';
     {
       // const userId = '6d8b443b-d1c6-4188-a6ee-2327abba31ed';
       // const keyId = 'smRGEPLBiguLVdDctsYGBQ';
       // const publicKeyAlgorithm = '-7';
-      // const clientDataJSON =
-      //     'eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiMjhHSVZ1dUNTXzVERzBMQTF0TnItMDEtcVd6TWY4UGZ5QlpOUVB0dFhxWSIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MCIsImNyb3NzT3JpZ2luIjpmYWxzZX0';
-      // const attestationObject =
-      //     'o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViUSZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2NdAAAAAOqbjWZNAR0hPOS2tIy1ddQAELJkRhDywYoLi1XQ3LbGBgWlAQIDJiABIVggkoCYhdhCvJfNoqD1pscWeiXJQF5G2RSeqDTE85g8nDsiWCD4rRfcgnxffuLLktXBqPm1Yx9X961Z74FLCwZ_oCuFMg';
-      // const authenticatorData =
-      //     'SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2NdAAAAAOqbjWZNAR0hPOS2tIy1ddQAELJkRhDywYoLi1XQ3LbGBgWlAQIDJiABIVggkoCYhdhCvJfNoqD1pscWeiXJQF5G2RSeqDTE85g8nDsiWCD4rRfcgnxffuLLktXBqPm1Yx9X961Z74FLCwZ_oCuFMg';
-      // const originalChallenge = '28GIVuuCS/5DG0LA1tNr+01+qWzMf8PfyBZNQPttXqY=';
+      const clientDataJSON =
+          'eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiMjhHSVZ1dUNTXzVERzBMQTF0TnItMDEtcVd6TWY4UGZ5QlpOUVB0dFhxWSIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MCIsImNyb3NzT3JpZ2luIjpmYWxzZX0';
+      const attestationObject =
+          'o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViUSZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2NdAAAAAOqbjWZNAR0hPOS2tIy1ddQAELJkRhDywYoLi1XQ3LbGBgWlAQIDJiABIVggkoCYhdhCvJfNoqD1pscWeiXJQF5G2RSeqDTE85g8nDsiWCD4rRfcgnxffuLLktXBqPm1Yx9X961Z74FLCwZ_oCuFMg';
+      const authenticatorData =
+          'SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2NdAAAAAOqbjWZNAR0hPOS2tIy1ddQAELJkRhDywYoLi1XQ3LbGBgWlAQIDJiABIVggkoCYhdhCvJfNoqD1pscWeiXJQF5G2RSeqDTE85g8nDsiWCD4rRfcgnxffuLLktXBqPm1Yx9X961Z74FLCwZ_oCuFMg';
+      const originalChallenge = '28GIVuuCS/5DG0LA1tNr+01+qWzMf8PfyBZNQPttXqY=';
+
+      await expectLater(
+        passkeys.verifyRegistration(
+          authenticatorData: base64.decode(padBase64(authenticatorData)),
+          attestationObject: base64.decode(padBase64(attestationObject)),
+          clientDataJSON: base64.decode(padBase64(clientDataJSON)),
+          challenge: base64.decode(padBase64(originalChallenge)),
+        ),
+        completes,
+      );
     }
 
     {
@@ -32,10 +46,6 @@ void main() async {
       // const userHandle = 'bYtEO9HGQYim7iMnq7ox7Q';
 
       final challenge = base64.decode(padBase64(loginChallenge));
-
-      final passkeys = Passkeys(
-        config: PasskeysConfig(relyingPartyId: 'localhost'),
-      );
 
       await expectLater(
         passkeys.verifyLogin(
