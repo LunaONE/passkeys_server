@@ -1,3 +1,7 @@
+## 0.4.0
+
+- Extend registration checks
+
 ## 0.3.0
 
 - Remove obsolete parameter from `verifyLogin` function

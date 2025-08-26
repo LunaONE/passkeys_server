@@ -81,6 +81,9 @@ class PasskeyRepository {
 
     await _passkeys.verifyRegistration(
       authenticatorData: authenticatorData,
+      attestationObject: attestationObject,
+      clientDataJSON: clientDataJSON,
+      challenge: challengeData.challenge,
     );
 
     final userId = const Uuid().v4obj();
