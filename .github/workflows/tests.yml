@@ -21,7 +21,7 @@ jobs:
           [
             ./packages/passkeys_server,
             ./packages/passkeys_server_relic,
-            ./packages/passkeys_server_relic/example,
+            ./packages/passkeys_server_relic_example,
           ]
     defaults:
       run:

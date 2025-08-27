@@ -2,38 +2,39 @@
 
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
+import 'package:passkeys_server_relic_example/src/authenticator_data.dart';
+import 'package:passkeys_server_relic_example/src/keyfile.dart';
+import 'package:passkeys_server_relic_example/src/passkey_repository.dart';
 import 'package:relic/io_adapter.dart';
 import 'package:relic/relic.dart';
 import 'package:uuid/uuid.dart';
 
-import 'passkey_repository.dart';
+late final PasskeyRepository passkeys;
 
-final relyingPartyId = Platform.environment['RELYING_PARTY'] ?? 'localhost';
-
-final storageRoot = Directory(
-  Platform.environment['STORAGE_LOCATION'] ?? './.passkey_storage',
-);
-
-final passkeys = PasskeyRepository(
-  relyingPartyId: relyingPartyId,
-  storageRoot: storageRoot,
-);
-
-void main() async {
+Future<void> startServer({
+  required String relyingPartyId,
+  required Directory storageRoot,
+}) async {
   print(
     'Configuration:\n'
     'relyingPartyId = $relyingPartyId\n'
     'Storage = ${storageRoot.absolute.uri.toFilePath()}',
   );
 
+  passkeys = PasskeyRepository(
+    relyingPartyId: relyingPartyId,
+    storageRoot: storageRoot,
+  );
+
   final router = Router<Handler>()
     ..post('/api/new-user', newUser)
     ..post('/api/finish-registration', registerPublicKey)
     ..post('/api/login', loginWithKey)
+    // Admin API
+    ..get('/api/admin/keys', _adminListKeys)
     ..get('/healthz', _healthCheck)
-    ..get('/admin/registered_keys', _adminListKeys)
+    ..get('/assets/pico.min.css', _css)
     ..get('/', _landingPage);
 
   final handler = const Pipeline()
@@ -52,42 +53,57 @@ ResponseContext _healthCheck(RequestContext ctx) {
 }
 
 Future<ResponseContext> _adminListKeys(RequestContext ctx) async {
+  final keys = await passkeys.listKeys();
+
   return (ctx as RespondableContext).withResponse(
     Response.ok(
       body: Body.fromString(
-        [
-          'Keys:',
-          for (final key in await passkeys.listKeys()) ...[
-            '  - key ID:             ${key.keyId.toBase64Url()}',
-            '    user ID:            ${key.userId}',
-            '    created at:         ${key.createdAt.toIso8601String()}',
-            '    client data:        ${utf8.decode(key.clientDataJSON)}',
-            '    original challenge: ${key.originalChallenge.toBase64Url()}',
-            // '    attestation object: ${key.attestationObject}',
-            '    authenticator data: ${parseAuthenticatorData(key.authenticatorData)} (${key.authenticatorData.lengthInBytes}B)',
+        jsonEncode({
+          'keys': [
+            for (final key in keys) key.toJson(),
           ],
-        ].join('\n'),
+        }),
+        mimeType: MimeType.json,
       ),
     ),
   );
 }
 
-/// https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data
-String parseAuthenticatorData(Uint8List authenticatorData) {
-  final rpIdHash = Uint8List.sublistView(authenticatorData, 0, 32);
-  final flag = authenticatorData[32];
+extension on Keyfile {
+  Map<String, dynamic> toJson() {
+    final authenticatorData = parseAuthenticatorData(this.authenticatorData);
 
-  return [
-    'rpIdHash: ${rpIdHash.map((e) => e.toRadixString(16).padLeft(2, '0')).join()}',
-    'UP ${hasBitSet(flag, 0)}',
-    'UV ${hasBitSet(flag, 2)}',
-    'BE ${hasBitSet(flag, 3)}',
-    'BS ${hasBitSet(flag, 4)}',
-  ].join(', ');
+    return <String, dynamic>{
+      'keyId': keyId.toBase64Url(),
+      'userId': userId.uuid,
+      'createdAt': createdAt.toIso8601String(),
+      // client data:        ${utf8.decode(key.clientDataJSON)}',
+      // original challenge: ${key.originalChallenge.toBase64Url()}',
+      'rpIdHash': authenticatorData.rpIdHashHex,
+      'aaGuid': authenticatorData.aaGuid?.uuid,
+      'authenticator': getAuthenticator(authenticatorData.aaGuid),
+      'signCount': authenticatorData.signCount,
+      'UP': authenticatorData.userPresence,
+      'UV': authenticatorData.userVerification,
+      'BE': authenticatorData.backupEligbility,
+      'BS': authenticatorData.backupState,
+    };
+  }
 }
 
-bool hasBitSet(int value, int index) {
-  return (value & (1 << index)) != 0;
+final authenticatorInfo =
+    jsonDecode(File('./assets/aaguid.json').readAsStringSync()) as Map;
+
+String? getAuthenticator(UuidValue? aaGuid) {
+  final entry = authenticatorInfo[aaGuid?.uuid];
+
+  if (entry is Map) {
+    if (entry['name'] case final String name) {
+      return name;
+    }
+  }
+
+  return null;
 }
 
 ResponseContext _landingPage(RequestContext ctx) {
@@ -96,6 +112,17 @@ ResponseContext _landingPage(RequestContext ctx) {
       body: Body.fromString(
         File('./assets/index.html').readAsStringSync(),
         mimeType: MimeType.html,
+      ),
+    ),
+  );
+}
+
+ResponseContext _css(RequestContext ctx) {
+  return (ctx as RespondableContext).withResponse(
+    Response.ok(
+      body: Body.fromString(
+        File('./assets/pico.min.css').readAsStringSync(),
+        mimeType: MimeType.css,
       ),
     ),
   );
@@ -169,6 +196,12 @@ Future<ResponseContext> registerPublicKey(RequestContext ctx) async {
 Future<ResponseContext> loginWithKey(RequestContext ctx) async {
   final UuidValue userId;
   try {
+    final authenticatorData = base64Decode(
+      padBase64(
+        ctx.request.requestedUri.queryParameters['authenticatorData']!,
+      ),
+    );
+
     userId = await passkeys.login(
       loginId: base64Decode(
         padBase64(ctx.request.requestedUri.queryParameters['loginId']!),
@@ -176,11 +209,7 @@ Future<ResponseContext> loginWithKey(RequestContext ctx) async {
       keyId: base64Decode(
         padBase64(ctx.request.requestedUri.queryParameters['keyId']!),
       ),
-      authenticatorData: base64Decode(
-        padBase64(
-          ctx.request.requestedUri.queryParameters['authenticatorData']!,
-        ),
-      ),
+      authenticatorData: authenticatorData,
       clientDataJSON: base64Decode(
         padBase64(
           ctx.request.requestedUri.queryParameters['clientDataJSON']!,
