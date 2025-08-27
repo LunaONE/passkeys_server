@@ -4,6 +4,7 @@ name: passkeys_server_relic_example
 description: A starting point for Dart libraries or applications.
 version: 1.0.0
 repository: https://github.com/LunaONE/passkeys_server
+homepage: https://passkeys-server.lunaone.de/
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
@@ -21,6 +22,6 @@ dev_dependencies:
 
 dependency_overrides:
   passkeys_server:
-    path: ../../passkeys_server
+    path: ../passkeys_server
   passkeys_server_relic:
-    path: ../
+    path: ../passkeys_server_relic

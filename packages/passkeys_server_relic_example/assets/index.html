@@ -2,48 +2,61 @@
   <head>
     <title>Passkeys Server for Dart Demo</title>
 
-    <style>
-      body {
-        line-height: 1.5;
-        font-family: ui-sans-serif, system-ui, sans-serif;
-      }
-    </style>
+    <link rel="stylesheet" href="assets/pico.min.css" />
   </head>
 
   <body>
-    <h1>Passkeys Server Demo</h1>
+    <main class="container">
+      <h1>Passkeys Server Demo</h1>
 
-    <p>
-      <a href="https://pub.dev/packages/passkeys_server">Package on pub.dev</a>,
-      <a href="https://github.com/LunaONE/passkeys_server"
-        >Source code on GitHub</a
-      >
-    </p>
+      <p>
+        A demo server for the <code>passkeys_server</code> Dart package.<br />
+        Get the
+        <a href="https://pub.dev/packages/passkeys_server"
+          >package on pub.dev</a
+        >
+        or the
+        <a href="https://github.com/LunaONE/passkeys_server"
+          >source code on GitHub</a
+        >.
+      </p>
 
-    <div>
-      <input id="pkName" placeholder="Passkey name" />
-      <br />
-      <br />
-      <button id="btn">Register a Passkey</button>
+      <section>
+        <h2>Register a new Passkey</h2>
+
+        <article class="component">
+          <label
+            >Passkey name (local only)
+
+            <input id="pkName" placeholder="Passkey name" />
+          </label>
+
+          <button id="btn">Register a new Passkey</button>
+        </article>
+      </section>
+
+      <section>
+        <h2>Log in with existing Passkey</h2>
+
+        <article class="component">
+          <button id="btnLogin">Log in with Passkey</button>
+        </article>
+      </section>
+
+      <section>
+        <h2>Debugging functions</h2>
+
+        <article class="component">
+          <button id="listKeys" class="outline">List keys</button>
+
+          <div id="adminContent"></div>
+        </article>
+      </section>
 
       <hr />
 
-      <button id="btnLogin">Log in with Passkey</button>
-    </div>
-
-    <hr />
-
-    <section>
-      <h3>Admin</h3>
-
-      <ul>
-        <li><a href="/admin/registered_keys">List keys</a></li>
-      </ul>
-    </section>
-
-    <hr />
-
-    <p>By <a href="https://www.lunaone.de/flutter">LunaONE GmbH</a>.</p>
+      <p>Built by <a href="https://www.lunaone.de/flutter">LunaONE GmbH</a>.</p>
+    </main>
 
     <script>
       document.getElementById("pkName").value = new Date()
@@ -126,6 +139,45 @@
           });
         }
       });
+
+      document
+        .getElementById("listKeys")
+        .addEventListener("click", async () => {
+          document.getElementById("adminContent").innerHTML =
+            '<span aria-busy="true">Fetching keys...</span>';
+
+          const response = await fetch(`/api/admin/keys`, {
+            method: "GET",
+          });
+          const responseBody = await response.json();
+
+          document.getElementById("adminContent").innerHTML = `
+          <div class="overflow-auto">
+            <table class="striped" style="white-space: nowrap;">
+              <thead>
+                <tr>
+                  <th scope="col">Key</th>
+                  <th scope="col">User</th>
+                  <th scope="col">Registered at</th>
+                  <th scope="col">Authenticator</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${responseBody["keys"]
+                  .map(
+                    (e) => ` <tr>
+                  <th scope="row">${e["keyId"]}</td>
+                  <td>${e["userId"]}</td>
+                  <td>${e["createdAt"]}</td>
+                  <td>${e["authenticator"]}</td>
+                </tr>`
+                  )
+                  .join(" ")} 
+              </tbody>
+            </table>
+          </div>
+          `;
+        });
 
       document
         .getElementById("btnLogin")

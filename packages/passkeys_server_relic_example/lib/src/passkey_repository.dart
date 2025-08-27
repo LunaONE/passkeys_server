@@ -3,9 +3,8 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:passkeys_server/passkeys_server.dart';
+import 'package:passkeys_server_relic_example/src/keyfile.dart';
 import 'package:uuid/uuid.dart';
-
-import 'keyfile.dart';
 
 class PasskeyRepository {
   PasskeyRepository({
@@ -67,7 +66,7 @@ class PasskeyRepository {
     required Uint8List authenticatorData,
   }) async {
     final challengeData =
-        _activeChallenges[UuidValue.fromByteList(challengeId)];
+        _activeChallenges.remove(UuidValue.fromByteList(challengeId));
 
     if (challengeData == null ||
         challengeData.createdAt
@@ -114,7 +113,8 @@ class PasskeyRepository {
   }) async {
     final keyFile = await Keyfile.read(_publicKeysDir, keyId);
 
-    final challengeData = _activeChallenges[UuidValue.fromByteList(loginId)];
+    final challengeData =
+        _activeChallenges.remove(UuidValue.fromByteList(loginId));
 
     if (challengeData == null ||
         challengeData.createdAt
