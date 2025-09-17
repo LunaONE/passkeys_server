@@ -1,3 +1,7 @@
+## 0.5.0
+
+- Add "Windows Hello" support
+
 ## 0.4.0
 
 - Extend registration checks

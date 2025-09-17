@@ -18,7 +18,16 @@ class Passkeys {
 
   final String relyingPartyId;
 
-  final supportedAlgorithms = Set.unmodifiable({-7});
+  //  ES256 (aka P256)
+  static const _es256AlgorithmId = -7;
+
+  // RS256 (aka RSA)
+  static const _rs256AlgorithmId = -257;
+
+  final supportedAlgorithms = Set.unmodifiable({
+    _es256AlgorithmId,
+    _rs256AlgorithmId,
+  });
 
   Future<Uint8List> createChallenge() async {
     return Uint8ListUtil.random(32);
@@ -70,36 +79,67 @@ class Passkeys {
     /// The challenge created by the server for the client
     required Uint8List challenge,
   }) async {
-    if (key.algorithm != supportedAlgorithms.single) {
-      throw Exception('Unsupport algorithm ${key.algorithm}.');
-    }
+    switch (key.algorithm) {
+      case _es256AlgorithmId:
+        final originalChallenge = challenge;
 
-    final originalChallenge = challenge;
+        final publicKey = ECPublicKey.bytes(key.publicKey);
 
-    final publicKey = ECPublicKey.bytes(key.publicKey);
+        final clientData = jsonDecode(utf8.decode(clientDataJSON)) as Map;
+        final clientChallege = base64Decode(
+          padBase64(clientData['challenge'] as String),
+        );
 
-    final clientData = jsonDecode(utf8.decode(clientDataJSON)) as Map;
-    final clientChallege = base64Decode(
-      padBase64(clientData['challenge'] as String),
-    );
+        if (!bytesEqual(originalChallenge, clientChallege)) {
+          throw Exception('The wrong challenge was solved by the client.');
+        }
 
-    if (!bytesEqual(originalChallenge, clientChallege)) {
-      throw Exception('The wrong challenge was solved by the client.');
-    }
+        final signedData = Uint8List.fromList([
+          ...authenticatorData,
+          ...sha256.convert(clientDataJSON).bytes,
+        ]);
 
-    final signedData = Uint8List.fromList([
-      ...authenticatorData,
-      ...sha256.convert(clientDataJSON).bytes,
-    ]);
+        final valid = const ECDSAAlgorithm('ES256').verify(
+          publicKey,
+          signedData,
+          derToRawSignature(signature),
+        );
 
-    final valid = const ECDSAAlgorithm('ES256').verify(
-      publicKey,
-      signedData,
-      derToRawSignature(signature),
-    );
+        if (!valid) {
+          throw Exception('Invalid signature');
+        }
 
-    if (!valid) {
-      throw Exception('Invalid signature');
+      case _rs256AlgorithmId:
+        final originalChallenge = challenge;
+
+        final publicKey = RSAPublicKey.bytes(key.publicKey);
+
+        final clientData = jsonDecode(utf8.decode(clientDataJSON)) as Map;
+        final clientChallege = base64Decode(
+          padBase64(clientData['challenge'] as String),
+        );
+
+        if (!bytesEqual(originalChallenge, clientChallege)) {
+          throw Exception('The wrong challenge was solved by the client.');
+        }
+
+        final signedData = Uint8List.fromList([
+          ...authenticatorData,
+          ...sha256.convert(clientDataJSON).bytes,
+        ]);
+
+        final valid = const RSAAlgorithm('RS256', null).verify(
+          publicKey,
+          signedData,
+          signature,
+        );
+
+        if (!valid) {
+          throw Exception('Invalid signature');
+        }
+
+      default:
+        throw Exception('Unsupport algorithm ${key.algorithm}.');
     }
   }
 }
