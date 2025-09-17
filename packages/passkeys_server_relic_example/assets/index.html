@@ -228,6 +228,8 @@
             const response = await fetch(`/api/login?${params}`, {
               method: "POST",
             });
+
+            alert(await response.text());
           }
         });
 
