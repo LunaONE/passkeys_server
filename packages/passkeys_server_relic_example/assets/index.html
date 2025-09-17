@@ -94,11 +94,11 @@
             displayName: "",
           },
           pubKeyCredParams: [
-            // Works on everything but Windows,
-            // but 2 more (RS1 and P-256) are (soon) required https://fidoalliance.org/specs/fido-v2.0-rd-20180702/fido-server-v2.0-rd-20180702.html#other
-            { type: "public-key", alg: -7 },
             // The Windows Hello algorithm
             { type: "public-key", alg: -257 },
+            // Works on everything but Windows
+            { type: "public-key", alg: -7 },
+            // 2 more (RS1 and P-256) are (soon) required https://fidoalliance.org/specs/fido-v2.0-rd-20180702/fido-server-v2.0-rd-20180702.html#other
           ],
         };
 
