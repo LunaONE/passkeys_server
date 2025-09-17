@@ -86,6 +86,7 @@
         console.log(userId);
 
         const publicKey = {
+          attestation: "direct",
           challenge: challenge,
           rp: { id: window.location.hostname, name: "passkeys_server Demo" },
           user: {
