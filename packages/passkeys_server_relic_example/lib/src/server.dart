@@ -34,7 +34,15 @@ Future<void> startServer({
     // Admin API
     ..get('/api/admin/keys', _adminListKeys)
     ..get('/healthz', _healthCheck)
-    ..get('/assets/pico.min.css', _css)
+
+    // Static files
+    ..get(
+      '/assets/**',
+      createStaticHandler(
+        './assets/public/',
+        cacheControl: (_, __) => null,
+      ),
+    )
     ..get('/', _landingPage);
 
   final handler = const Pipeline()
@@ -48,14 +56,14 @@ Future<void> startServer({
   print('Serving at http://localhost:$port');
 }
 
-ResponseContext _healthCheck(RequestContext ctx) {
-  return (ctx as RespondableContext).withResponse(Response.ok());
+ResponseContext _healthCheck(NewContext ctx) {
+  return ctx.respond(Response.ok());
 }
 
-Future<ResponseContext> _adminListKeys(RequestContext ctx) async {
+Future<ResponseContext> _adminListKeys(NewContext ctx) async {
   final keys = await passkeys.listKeys();
 
-  return (ctx as RespondableContext).withResponse(
+  return ctx.respond(
     Response.ok(
       body: Body.fromString(
         jsonEncode({
@@ -106,8 +114,8 @@ String? getAuthenticator(UuidValue? aaGuid) {
   return null;
 }
 
-ResponseContext _landingPage(RequestContext ctx) {
-  return (ctx as RespondableContext).withResponse(
+ResponseContext _landingPage(NewContext ctx) {
+  return ctx.respond(
     Response.ok(
       body: Body.fromString(
         File('./assets/index.html').readAsStringSync(),
@@ -117,21 +125,10 @@ ResponseContext _landingPage(RequestContext ctx) {
   );
 }
 
-ResponseContext _css(RequestContext ctx) {
-  return (ctx as RespondableContext).withResponse(
-    Response.ok(
-      body: Body.fromString(
-        File('./assets/pico.min.css').readAsStringSync(),
-        mimeType: MimeType.css,
-      ),
-    ),
-  );
-}
-
-Future<ResponseContext> newUser(RequestContext ctx) async {
+Future<ResponseContext> newUser(NewContext ctx) async {
   final challenge = await passkeys.createChallenge(ChallengeKind.registration);
 
-  return (ctx as RespondableContext).withResponse(
+  return ctx.respond(
     Response.ok(
       body: Body.fromString(
         jsonEncode({
@@ -144,7 +141,7 @@ Future<ResponseContext> newUser(RequestContext ctx) async {
   );
 }
 
-Future<ResponseContext> registerPublicKey(RequestContext ctx) async {
+Future<ResponseContext> registerPublicKey(NewContext ctx) async {
   final UuidValue userId;
   try {
     final challengeid =
@@ -185,7 +182,7 @@ Future<ResponseContext> registerPublicKey(RequestContext ctx) async {
     rethrow;
   }
 
-  return (ctx as RespondableContext).withResponse(
+  return ctx.respond(
     Response.ok(body: Body.fromString('Registered as user $userId')),
   );
   // Verifying that the challenge is the same as the challenge that was sent.
@@ -193,7 +190,7 @@ Future<ResponseContext> registerPublicKey(RequestContext ctx) async {
   // Validating that the signature and attestation are using the correct certificate chain for the specific model of the authenticator used to generate the key pair in the first place.
 }
 
-Future<ResponseContext> loginWithKey(RequestContext ctx) async {
+Future<ResponseContext> loginWithKey(NewContext ctx) async {
   final UuidValue userId;
   try {
     final authenticatorData = base64Decode(
@@ -227,7 +224,7 @@ Future<ResponseContext> loginWithKey(RequestContext ctx) async {
     rethrow;
   }
 
-  return (ctx as RespondableContext).withResponse(
+  return ctx.respond(
     Response.ok(body: Body.fromString('Logged in as user $userId')),
   );
 }
@@ -245,6 +242,6 @@ String padBase64(String s) {
   return buf.toString();
 }
 
-ResponseContext fallback404(RequestContext ctx) {
-  return (ctx as RespondableContext).withResponse(Response.notFound());
+ResponseContext fallback404(NewContext ctx) {
+  return ctx.respond(Response.notFound());
 }

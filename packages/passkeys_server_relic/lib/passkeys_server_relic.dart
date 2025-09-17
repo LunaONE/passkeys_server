@@ -10,11 +10,7 @@ final passkeys = Passkeys(
 
 Future<void> startServer() async {
   // Setup router
-  final router = Router<Handler>()
-
-    // // Health check path for render.com
-    // ..get('/healthz', healthCheck)
-    ..get('/', homepage);
+  final router = Router<Handler>()..get('/', homepage);
 
   final handler = const Pipeline()
       .addMiddleware(logRequests())
@@ -29,8 +25,8 @@ Future<void> startServer() async {
   print('Serving at http://localhost:$port');
 }
 
-ResponseContext homepage(RequestContext ctx) {
-  return (ctx as RespondableContext).withResponse(
+ResponseContext homepage(NewContext ctx) {
+  return ctx.respond(
     Response.ok(
       body: Body.fromString(
         File('./assets/index.html').readAsStringSync(),
@@ -40,6 +36,6 @@ ResponseContext homepage(RequestContext ctx) {
   );
 }
 
-ResponseContext fallback404(RequestContext ctx) {
-  return (ctx as RespondableContext).withResponse(Response.notFound());
+ResponseContext fallback404(NewContext ctx) {
+  return ctx.respond(Response.notFound());
 }
