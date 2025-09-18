@@ -77,6 +77,7 @@ extension on Keyfile {
       'keyId': keyId.toBase64Url(),
       'userId': userId.uuid,
       'createdAt': createdAt.toIso8601String(),
+      'algorithm': publicKeyAlgorithm,
       // client data:        ${utf8.decode(key.clientDataJSON)}',
       // original challenge: ${key.originalChallenge.toBase64Url()}',
       'rpIdHash': authenticatorData.rpIdHashHex,

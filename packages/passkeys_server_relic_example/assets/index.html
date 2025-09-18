@@ -86,6 +86,7 @@
         console.log(userId);
 
         const publicKey = {
+          attestation: "direct",
           challenge: challenge,
           rp: { id: window.location.hostname, name: "passkeys_server Demo" },
           user: {
@@ -94,10 +95,11 @@
             displayName: "",
           },
           pubKeyCredParams: [
-            // Works on everything but Windows, but 2 more (RS1 and P-256) are (soon) required https://fidoalliance.org/specs/fido-v2.0-rd-20180702/fido-server-v2.0-rd-20180702.html#other
-            { type: "public-key", alg: -7 },
             // The Windows Hello algorithm
-            // { type: "public-key", alg: -257 },
+            { type: "public-key", alg: -257 },
+            // Works on everything but Windows
+            { type: "public-key", alg: -7 },
+            // 2 more (RS1 and P-256) are (soon) required https://fidoalliance.org/specs/fido-v2.0-rd-20180702/fido-server-v2.0-rd-20180702.html#other
           ],
         };
 
@@ -159,6 +161,7 @@
                   <th scope="col">Key</th>
                   <th scope="col">User</th>
                   <th scope="col">Registered at</th>
+                  <th scope="col">Algorithm</th>
                   <th scope="col">Authenticator</th>
                 </tr>
               </thead>
@@ -169,6 +172,7 @@
                   <th scope="row">${e["keyId"]}</td>
                   <td>${e["userId"]}</td>
                   <td>${e["createdAt"]}</td>
+                  <td>${e["algorithm"]}</td>
                   <td>${e["authenticator"]}</td>
                 </tr>`
                   )
@@ -224,6 +228,8 @@
             const response = await fetch(`/api/login?${params}`, {
               method: "POST",
             });
+
+            alert(await response.text());
           }
         });
 
