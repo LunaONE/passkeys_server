@@ -9,10 +9,7 @@ class Keyfile {
   Keyfile({
     required this.keyId,
     required this.clientDataJSON,
-    required this.publicKey,
-    required this.publicKeyAlgorithm,
     required this.attestationObject,
-    required this.authenticatorData,
     required this.userId,
     required this.originalChallenge,
     required this.createdAt,
@@ -28,11 +25,7 @@ class Keyfile {
     final encoded = cbor.encode(
       CborMap({
         CborString(_clientDataJSONKey): CborBytes(clientDataJSON),
-        CborString(_publicKeyKey): CborBytes(publicKey),
-        CborString(_publicKeyAlgorithmKey):
-            CborInt(BigInt.from(publicKeyAlgorithm)),
         CborString(_attestationObjectKey): CborBytes(attestationObject),
-        CborString(_authenticatorDataKey): CborBytes(authenticatorData),
         CborString(_userIdKey): CborBytes(userId.toBytes()),
         CborString(_originalChallengeKey): CborBytes(originalChallenge),
         CborString(_createdAtKey):
@@ -59,24 +52,12 @@ class Keyfile {
 
     final keyFileContent = cbor.decode(keyFile.readAsBytesSync()) as CborMap;
 
-    final publicKeyAlgorithm =
-        (keyFileContent[CborString(_publicKeyAlgorithmKey)]! as CborInt)
-            .toInt();
-
-    final publicKey = Uint8List.fromList(
-      (keyFileContent[CborString(_publicKeyKey)]! as CborBytes).bytes,
-    );
-
     final clientDataJSON = Uint8List.fromList(
       (keyFileContent[CborString(_clientDataJSONKey)]! as CborBytes).bytes,
     );
 
     final attestationObject = Uint8List.fromList(
       (keyFileContent[CborString(_attestationObjectKey)]! as CborBytes).bytes,
-    );
-
-    final authenticatorData = Uint8List.fromList(
-      (keyFileContent[CborString(_authenticatorDataKey)]! as CborBytes).bytes,
     );
 
     final userId = UuidValue.fromList(
@@ -94,10 +75,7 @@ class Keyfile {
     return Keyfile(
       keyId: keyId,
       clientDataJSON: clientDataJSON,
-      publicKey: publicKey,
-      publicKeyAlgorithm: publicKeyAlgorithm,
       attestationObject: attestationObject,
-      authenticatorData: authenticatorData,
       userId: userId,
       originalChallenge: originalChallenge,
       createdAt: createdAt,
@@ -108,13 +86,8 @@ class Keyfile {
 
   final Uint8List clientDataJSON;
 
-  final Uint8List publicKey;
-
-  final int publicKeyAlgorithm;
-
+  /// The attestation object from the registration
   final Uint8List attestationObject;
-
-  final Uint8List authenticatorData;
 
   final UuidValue userId;
 
@@ -123,10 +96,7 @@ class Keyfile {
   final DateTime createdAt;
 
   static const _clientDataJSONKey = 'clientDataJSON';
-  static const _publicKeyKey = 'publicKey';
-  static const _publicKeyAlgorithmKey = 'publicKeyAlgorithm';
   static const _attestationObjectKey = 'attestationObject';
-  static const _authenticatorDataKey = 'authenticatorData';
   static const _userIdKey = 'userId';
   static const _originalChallengeKey = 'originalChallenge';
   static const _createdAtKey = 'createdAt';

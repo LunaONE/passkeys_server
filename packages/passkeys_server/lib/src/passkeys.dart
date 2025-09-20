@@ -2,10 +2,9 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:asn1lib/asn1lib.dart';
-import 'package:cbor/cbor.dart';
 import 'package:crypto/crypto.dart';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
-import 'package:passkeys_server/src/config.dart';
+import 'package:passkeys_server/passkeys_server.dart';
 import 'package:passkeys_server/src/rng.dart';
 
 class Passkeys {
@@ -18,7 +17,7 @@ class Passkeys {
 
   final String relyingPartyId;
 
-  //  ES256 (aka P256)
+  // ES256 (aka P256)
   static const _es256AlgorithmId = -7;
 
   // RS256 (aka RSA)
@@ -35,7 +34,7 @@ class Passkeys {
 
   /// Throws if invalid
   Future<void> verifyRegistration({
-    required Uint8List authenticatorData,
+    required Uint8List keyId,
     required Uint8List clientDataJSON,
     required Uint8List attestationObject,
 
@@ -43,9 +42,16 @@ class Passkeys {
     required Uint8List challenge,
   }) async {
     final rp256 = sha256.convert(utf8.encode(_config.relyingPartyId)).bytes;
-    final clientHash = Uint8List.sublistView(authenticatorData, 0, 32);
 
-    if (!bytesEqual(rp256, clientHash)) {
+    final (authenticatorData,) = parseAttestationObject(attestationObject);
+
+    if (!bytesEqual(keyId, authenticatorData.credentialId!)) {
+      throw Exception(
+        'Client did not provide the same key ID as the authenticator data',
+      );
+    }
+
+    if (!bytesEqual(rp256, authenticatorData.rpIdHash)) {
       throw Exception(
         'Client did not provide correct rpId hash in authenticator data',
       );
@@ -59,19 +65,10 @@ class Passkeys {
     if (!bytesEqual(challenge, clientChallege)) {
       throw Exception('The wrong challenge was solved by the client.');
     }
-
-    final authData = ((cbor.decode(attestationObject)
-            as CborMap)[CborString('authData')]! as CborBytes)
-        .bytes;
-
-    if (!bytesEqual(authenticatorData, authData)) {
-      throw Exception(
-          'The embedded auth data did not match the high-level one.');
-    }
   }
 
   Future<void> verifyLogin({
-    required ({Uint8List publicKey, int algorithm}) key,
+    required Uint8List registrationAttestationObject,
     required Uint8List authenticatorData,
     required Uint8List clientDataJSON,
     required Uint8List signature,
@@ -79,11 +76,15 @@ class Passkeys {
     /// The challenge created by the server for the client
     required Uint8List challenge,
   }) async {
-    switch (key.algorithm) {
+    final (registrationAuthenticatorData,) =
+        parseAttestationObject(registrationAttestationObject);
+
+    switch (registrationAuthenticatorData.alg) {
       case _es256AlgorithmId:
         final originalChallenge = challenge;
 
-        final publicKey = ECPublicKey.bytes(key.publicKey);
+        final publicKey =
+            registrationAuthenticatorData.publicKey! as ECPublicKey;
 
         final clientData = jsonDecode(utf8.decode(clientDataJSON)) as Map;
         final clientChallege = base64Decode(
@@ -112,7 +113,8 @@ class Passkeys {
       case _rs256AlgorithmId:
         final originalChallenge = challenge;
 
-        final publicKey = RSAPublicKey.bytes(key.publicKey);
+        final publicKey =
+            registrationAuthenticatorData.publicKey! as RSAPublicKey;
 
         final clientData = jsonDecode(utf8.decode(clientDataJSON)) as Map;
         final clientChallege = base64Decode(
@@ -139,7 +141,9 @@ class Passkeys {
         }
 
       default:
-        throw Exception('Unsupport algorithm ${key.algorithm}.');
+        throw Exception(
+          'Unsupport algorithm ${registrationAuthenticatorData.alg}.',
+        );
     }
   }
 }

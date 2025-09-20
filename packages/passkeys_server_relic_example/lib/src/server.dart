@@ -3,7 +3,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:passkeys_server_relic_example/src/authenticator_data.dart';
+import 'package:passkeys_server/passkeys_server.dart';
 import 'package:passkeys_server_relic_example/src/keyfile.dart';
 import 'package:passkeys_server_relic_example/src/passkey_repository.dart';
 import 'package:relic/io_adapter.dart';
@@ -43,6 +43,13 @@ Future<void> startServer({
         cacheControl: (_, __) => null,
       ),
     )
+    ..get(
+      '/flutter/**',
+      createStaticHandler(
+        './assets/flutter/',
+        cacheControl: (_, __) => null,
+      ),
+    )
     ..get('/', _landingPage);
 
   final handler = const Pipeline()
@@ -79,16 +86,18 @@ Future<ResponseContext> _adminListKeys(NewContext ctx) async {
 
 extension on Keyfile {
   Map<String, dynamic> toJson() {
-    final authenticatorData = parseAuthenticatorData(this.authenticatorData);
+    final (authenticatorData,) = parseAttestationObject(attestationObject);
 
     return <String, dynamic>{
       'keyId': keyId.toBase64Url(),
       'userId': userId.uuid,
       'createdAt': createdAt.toIso8601String(),
-      'algorithm': publicKeyAlgorithm,
+      'algorithm': authenticatorData.alg,
       // client data:        ${utf8.decode(key.clientDataJSON)}',
       // original challenge: ${key.originalChallenge.toBase64Url()}',
-      'rpIdHash': authenticatorData.rpIdHashHex,
+      'rpIdHash': authenticatorData.rpIdHash
+          .map((e) => e.toRadixString(16).padLeft(2, '0'))
+          .join(),
       'aaGuid': authenticatorData.aaGuid?.uuid,
       'authenticator': getAuthenticator(authenticatorData.aaGuid),
       'signCount': authenticatorData.signCount,
@@ -133,8 +142,8 @@ Future<ResponseContext> newUser(NewContext ctx) async {
     Response.ok(
       body: Body.fromString(
         jsonEncode({
-          'userId': base64Encode(challenge.challengeId),
-          'challenge': base64Encode(challenge.challenge),
+          'userId': base64Url.encode(challenge.challengeId),
+          'challenge': base64Url.encode(challenge.challenge),
         }),
         mimeType: MimeType.json,
       ),
@@ -145,36 +154,25 @@ Future<ResponseContext> newUser(NewContext ctx) async {
 Future<ResponseContext> registerPublicKey(NewContext ctx) async {
   final UuidValue userId;
   try {
-    final challengeid =
-        base64Decode(ctx.request.requestedUri.queryParameters['userId']!);
+    final challengeid = base64Decode(
+        padBase64(ctx.request.requestedUri.queryParameters['userId']!));
 
     final keyId = ctx.request.requestedUri.queryParameters['keyId']!;
-    final publicKey = ctx.request.requestedUri.queryParameters['publicKey']!;
-    final publicKeyAlgorithm =
-        ctx.request.requestedUri.queryParameters['publicKeyAlgorithm']!;
     final clientDataJSON =
         ctx.request.requestedUri.queryParameters['clientDataJSON']!;
     final attestationObject =
         ctx.request.requestedUri.queryParameters['attestationObject']!;
-    final authenticatorData =
-        ctx.request.requestedUri.queryParameters['authenticatorData']!;
 
     print('final userId = "$challengeid";');
     print('final keyId = "$keyId";');
-    print('final publicKey = "$publicKey";');
-    print('final publicKeyAlgorithm = "$publicKeyAlgorithm";');
     print('final clientDataJSON = "$clientDataJSON";');
     print('final attestationObject  = "$attestationObject";');
-    print('final authenticatorData = "$authenticatorData";');
 
     userId = await passkeys.completeRegistration(
       challengeId: challengeid,
       keyId: base64Decode(padBase64(keyId)),
       clientDataJSON: base64Decode(padBase64(clientDataJSON)),
-      publicKey: base64Decode(padBase64(publicKey)),
-      publicKeyAlgorithm: int.parse(publicKeyAlgorithm),
       attestationObject: base64Decode(padBase64(attestationObject)),
-      authenticatorData: base64Decode(padBase64(authenticatorData)),
     );
   } catch (e, s) {
     print(e);

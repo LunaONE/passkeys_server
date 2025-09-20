@@ -1,4 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:passkeys/authenticator.dart';
+import 'package:passkeys/types.dart';
+import 'package:web/web.dart' as web;
 
 void main() {
   runApp(const MyApp());
@@ -7,46 +13,21 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Flutter Passkey Server Demo',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.pinkAccent),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Flutter Passkey Server Demo'),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
 
   final String title;
 
@@ -55,71 +36,163 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  final _nameController = TextEditingController(
+    text: DateTime.now().toIso8601String().substring(0, 19),
+  );
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+  Future<void> _register() async {
+    final passkeyAuthenticator = PasskeyAuthenticator();
+    final relyingPartyServer = RelyingPartyServer();
+
+    final webAuthnChallenge = await relyingPartyServer.prepareRegistration(
+      keyname: _nameController.text,
+    );
+
+    final platformRes = await passkeyAuthenticator.register(webAuthnChallenge);
+
+    await relyingPartyServer.finishSignUpWithPasskey(platformRes,
+        userId: webAuthnChallenge.user.id);
+  }
+
+  Future<void> _signIn() async {
+    final passkeyAuthenticator = PasskeyAuthenticator();
+    final relyingPartyServer = RelyingPartyServer();
+
+    final (webAuthnChallenge, userId) = await relyingPartyServer.prepareLogin();
+
+    final platformRes = await passkeyAuthenticator.authenticate(
+      webAuthnChallenge,
+    );
+
+    final result = await relyingPartyServer.finishLoginWithPasskey(
+      platformRes,
+      userId: userId,
+    );
+
+    // ignore: use_build_context_synchronously
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result)));
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
       body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 200),
+              child: TextField(
+                controller: _nameController,
+              ),
             ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+            const SizedBox(height: 10),
+            OutlinedButton(
+              onPressed: () => _register(),
+              child: const Text('Register new Passkey'),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton(
+              onPressed: () => _signIn(),
+              child: const Text('Sign in with existing Passkey'),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
+  }
+}
+
+class RelyingPartyServer {
+  String get _hostname => web.window.location.hostname;
+
+  Future<RegisterRequestType> prepareRegistration({
+    required String keyname,
+  }) async {
+    final response = await http.post(Uri.parse('/api/new-user'));
+
+    final responseMap = jsonDecode(response.body) as Map;
+
+    return RegisterRequestType(
+      challenge: (responseMap["challenge"] as String).replaceAll('=', ''),
+      relyingParty: RelyingPartyType(
+        name: _hostname,
+        id: _hostname,
+      ),
+      user: UserType(
+        displayName: keyname,
+        name: keyname,
+        id: (responseMap['userId'] as String).replaceAll('=', ''),
+      ),
+      authSelectionType: AuthenticatorSelectionType(
+          requireResidentKey: false, residentKey: '', userVerification: ''),
+      excludeCredentials: [],
+      pubKeyCredParams: [
+        PubKeyCredParamType(alg: -257, type: 'public-key'),
+        PubKeyCredParamType(alg: -7, type: 'public-key'),
+      ],
+      attestation: 'direct',
+    );
+  }
+
+  Future<
+      (
+        AuthenticateRequestType,
+        String userId,
+      )> prepareLogin() async {
+    final response = await http.post(Uri.parse('/api/new-user'));
+
+    final responseMap = jsonDecode(response.body) as Map;
+
+    return (
+      AuthenticateRequestType(
+        relyingPartyId: _hostname,
+        challenge: (responseMap["challenge"] as String).replaceAll('=', ''),
+        mediation: MediationType.Required,
+        preferImmediatelyAvailableCredentials: false,
+      ),
+      (responseMap['userId'] as String).replaceAll('=', ''),
+    );
+  }
+
+  Future<void> finishSignUpWithPasskey(
+    RegisterResponseType platformRes, {
+    required String userId,
+  }) async {
+    final registrationCall = Uri(
+      path: '/api/finish-registration',
+      queryParameters: {
+        "userId": userId,
+        "keyId": platformRes.id,
+        "clientDataJSON": platformRes.clientDataJSON,
+        "attestationObject": platformRes.attestationObject,
+      },
+    );
+
+    await http.post(registrationCall);
+  }
+
+  Future<String> finishLoginWithPasskey(
+    AuthenticateResponseType platformRes, {
+    required String userId,
+  }) async {
+    final registrationCall = Uri(
+      path: '/api/login',
+      queryParameters: {
+        "loginId": userId,
+        "keyId": platformRes.id,
+        "clientDataJSON": platformRes.clientDataJSON,
+        "authenticatorData": platformRes.authenticatorData,
+        "signature": platformRes.signature,
+      },
+    );
+
+    final response = await http.post(registrationCall);
+
+    return response.body;
   }
 }

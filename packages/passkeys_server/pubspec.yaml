@@ -12,6 +12,8 @@ dependencies:
   cbor: ^6.3.5
   crypto: ^3.0.6
   dart_jsonwebtoken: ^3.0.0
+  pointycastle: ^4.0.0
+  uuid: ^4.0.0
 
 dev_dependencies:
   lints: ^4.0.0
