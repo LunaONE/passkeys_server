@@ -60,10 +60,7 @@ class PasskeyRepository {
     required Uint8List challengeId,
     required Uint8List keyId,
     required Uint8List clientDataJSON,
-    required Uint8List publicKey,
-    required int publicKeyAlgorithm,
     required Uint8List attestationObject,
-    required Uint8List authenticatorData,
   }) async {
     final challengeData =
         _activeChallenges.remove(UuidValue.fromByteList(challengeId));
@@ -79,7 +76,7 @@ class PasskeyRepository {
     }
 
     await _passkeys.verifyRegistration(
-      authenticatorData: authenticatorData,
+      keyId: keyId,
       attestationObject: attestationObject,
       clientDataJSON: clientDataJSON,
       challenge: challengeData.challenge,
@@ -90,10 +87,7 @@ class PasskeyRepository {
     final keyFile = Keyfile(
       keyId: keyId,
       clientDataJSON: clientDataJSON,
-      publicKey: publicKey,
-      publicKeyAlgorithm: publicKeyAlgorithm,
       attestationObject: attestationObject,
-      authenticatorData: authenticatorData,
       userId: userId,
       originalChallenge: challengeData.challenge,
       createdAt: DateTime.now(),
@@ -127,10 +121,7 @@ class PasskeyRepository {
     // }
 
     await _passkeys.verifyLogin(
-      key: (
-        algorithm: keyFile.publicKeyAlgorithm,
-        publicKey: keyFile.publicKey
-      ),
+      registrationAttestationObject: keyFile.attestationObject,
       authenticatorData: authenticatorData,
       clientDataJSON: clientDataJSON,
       signature: signature,

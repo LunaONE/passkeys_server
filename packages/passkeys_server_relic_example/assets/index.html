@@ -53,6 +53,14 @@
         </article>
       </section>
 
+      <section>
+        <h2>Flutter Web Example</h2>
+
+        <article class="component">
+          <a href="/flutter/index.html">Go to Flutter Web Example</a>
+        </article>
+      </section>
+
       <hr />
 
       <p>Built by <a href="https://www.lunaone.de/flutter">LunaONE GmbH</a>.</p>
@@ -122,18 +130,9 @@
             "clientDataJSON",
             publicKey["response"]["clientDataJSON"]
           );
-          params.append("publicKey", publicKey["response"]["publicKey"]);
-          params.append(
-            "publicKeyAlgorithm",
-            publicKey["response"]["publicKeyAlgorithm"]
-          );
           params.append(
             "attestationObject",
             publicKey["response"]["attestationObject"]
-          );
-          params.append(
-            "authenticatorData",
-            publicKey["response"]["authenticatorData"]
           );
 
           const response = await fetch(`/api/finish-registration?${params}`, {
@@ -245,12 +244,7 @@
       }
 
       function base64ToUint8Array(base64) {
-        var binaryString = atob(base64);
-        var bytes = new Uint8Array(binaryString.length);
-        for (var i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        return bytes;
+        return Uint8Array.fromBase64(base64, { alphabet: "base64url" });
       }
     </script>
   </body>

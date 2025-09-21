@@ -1,3 +1,7 @@
+## 0.6.0
+
+- Reduce API surface by extracting the public key from the original attestation object
+
 ## 0.5.0
 
 - Add "Windows Hello" support

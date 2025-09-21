@@ -271,7 +271,7 @@ packages:
       path: "../passkeys_server"
       relative: true
     source: path
-    version: "0.4.0"
+    version: "0.6.0"
   passkeys_server_relic:
     dependency: "direct main"
     description:
@@ -316,7 +316,7 @@ packages:
     description:
       path: "."
       ref: merged
-      resolved-ref: "348448509983dc7d7345aa5a663a0ce70a823eb9"
+      resolved-ref: "69411f14cfdcb2607c48abff50baaf69ee03d26b"
       url: "https://github.com/nielsenko/relic.git"
     source: git
     version: "0.5.0"
