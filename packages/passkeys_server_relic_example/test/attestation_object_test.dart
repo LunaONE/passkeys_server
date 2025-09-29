@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:passkeys_server/passkeys_server.dart';
+import 'package:passkeys_server_relic_example/src/server.dart' show padBase64;
 import 'package:test/test.dart';
 
 void main() {
