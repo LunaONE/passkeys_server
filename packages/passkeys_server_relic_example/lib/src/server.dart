@@ -50,6 +50,7 @@ Future<void> startServer({
         cacheControl: (_, __) => null,
       ),
     )
+    ..head('/', _landingPage)
     ..get('/', _landingPage);
 
   final handler = const Pipeline()
