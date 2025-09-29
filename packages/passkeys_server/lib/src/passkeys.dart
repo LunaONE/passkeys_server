@@ -45,13 +45,13 @@ class Passkeys {
 
     final (authenticatorData,) = parseAttestationObject(attestationObject);
 
-    if (!bytesEqual(keyId, authenticatorData.credentialId!)) {
+    if (!_bytesEqual(keyId, authenticatorData.credentialId!)) {
       throw Exception(
         'Client did not provide the same key ID as the authenticator data',
       );
     }
 
-    if (!bytesEqual(rp256, authenticatorData.rpIdHash)) {
+    if (!_bytesEqual(rp256, authenticatorData.rpIdHash)) {
       throw Exception(
         'Client did not provide correct rpId hash in authenticator data',
       );
@@ -62,7 +62,7 @@ class Passkeys {
       padBase64(clientData['challenge'] as String),
     );
 
-    if (!bytesEqual(challenge, clientChallege)) {
+    if (!_bytesEqual(challenge, clientChallege)) {
       throw Exception('The wrong challenge was solved by the client.');
     }
   }
@@ -91,7 +91,7 @@ class Passkeys {
           padBase64(clientData['challenge'] as String),
         );
 
-        if (!bytesEqual(originalChallenge, clientChallege)) {
+        if (!_bytesEqual(originalChallenge, clientChallege)) {
           throw Exception('The wrong challenge was solved by the client.');
         }
 
@@ -103,7 +103,7 @@ class Passkeys {
         final valid = const ECDSAAlgorithm('ES256').verify(
           publicKey,
           signedData,
-          derToRawSignature(signature),
+          _derToRawSignature(signature),
         );
 
         if (!valid) {
@@ -121,7 +121,7 @@ class Passkeys {
           padBase64(clientData['challenge'] as String),
         );
 
-        if (!bytesEqual(originalChallenge, clientChallege)) {
+        if (!_bytesEqual(originalChallenge, clientChallege)) {
           throw Exception('The wrong challenge was solved by the client.');
         }
 
@@ -148,7 +148,7 @@ class Passkeys {
   }
 }
 
-bool bytesEqual(List<int> a, List<int> b) {
+bool _bytesEqual(List<int> a, List<int> b) {
   if (a.length != b.length) {
     return false;
   }
@@ -162,7 +162,7 @@ bool bytesEqual(List<int> a, List<int> b) {
   return true;
 }
 
-Uint8List derToRawSignature(Uint8List der) {
+Uint8List _derToRawSignature(Uint8List der) {
   final asn1 = ASN1Parser(der);
   final seq = asn1.nextObject() as ASN1Sequence;
   final r = (seq.elements[0] as ASN1Integer).valueBytes();

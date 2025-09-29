@@ -23,10 +23,10 @@ AuthenticatorData _parseAuthenticatorData(Uint8List authenticatorData) {
   final signCount =
       ByteData.sublistView(authenticatorData, 33, 33 + 4).getUint32(0);
 
-  final up = hasBitSet(flag, 0);
-  final uv = hasBitSet(flag, 2);
-  final be = hasBitSet(flag, 3);
-  final bs = hasBitSet(flag, 4);
+  final up = _hasBitSet(flag, 0);
+  final uv = _hasBitSet(flag, 2);
+  final be = _hasBitSet(flag, 3);
+  final bs = _hasBitSet(flag, 4);
 
   final UuidValue? aaGuid;
   final Uint8List? credentialId;
@@ -152,7 +152,7 @@ class AuthenticatorData {
   final JWTKey? publicKey;
 }
 
-bool hasBitSet(int value, int index) {
+bool _hasBitSet(int value, int index) {
   return (value & (1 << index)) != 0;
 }
 
