@@ -155,7 +155,8 @@ Future<ResponseContext> registerPublicKey(NewContext ctx) async {
   final UuidValue userId;
   try {
     final challengeid = base64Decode(
-        padBase64(ctx.request.requestedUri.queryParameters['userId']!));
+      padBase64(ctx.request.requestedUri.queryParameters['userId']!),
+    );
 
     final keyId = ctx.request.requestedUri.queryParameters['keyId']!;
     final clientDataJSON =
