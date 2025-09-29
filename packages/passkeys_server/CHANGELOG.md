@@ -1,3 +1,7 @@
+## 1.0.0
+
+- Stable API
+
 ## 0.6.0
 
 - Reduce API surface by extracting the public key from the original attestation object

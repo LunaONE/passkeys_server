@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:passkeys_server/passkeys_server.dart';
+import 'package:passkeys_server/src/util/internal.dart';
 import 'package:test/test.dart';
 
 void main() async {

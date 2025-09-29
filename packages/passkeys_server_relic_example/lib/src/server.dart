@@ -50,6 +50,7 @@ Future<void> startServer({
         cacheControl: (_, __) => null,
       ),
     )
+    ..head('/', _landingPage)
     ..get('/', _landingPage);
 
   final handler = const Pipeline()
@@ -155,7 +156,8 @@ Future<ResponseContext> registerPublicKey(NewContext ctx) async {
   final UuidValue userId;
   try {
     final challengeid = base64Decode(
-        padBase64(ctx.request.requestedUri.queryParameters['userId']!));
+      padBase64(ctx.request.requestedUri.queryParameters['userId']!),
+    );
 
     final keyId = ctx.request.requestedUri.queryParameters['keyId']!;
     final clientDataJSON =
