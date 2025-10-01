@@ -50,8 +50,7 @@ Future<void> startServer({
         cacheControl: (_, __) => null,
       ),
     )
-    ..head('/', _landingPage)
-    ..get('/', _landingPage);
+    ..anyOf({Method.get, Method.head}, '/', _landingPage);
 
   final handler = const Pipeline()
       .addMiddleware(logRequests())
@@ -125,16 +124,10 @@ String? getAuthenticator(UuidValue? aaGuid) {
   return null;
 }
 
-ResponseContext _landingPage(NewContext ctx) {
-  return ctx.respond(
-    Response.ok(
-      body: Body.fromString(
-        File('./assets/index.html').readAsStringSync(),
-        mimeType: MimeType.html,
-      ),
-    ),
-  );
-}
+final _landingPage = createFileHandler(
+  './assets/index.html',
+  cacheControl: (_, __) => null,
+);
 
 Future<ResponseContext> newUser(NewContext ctx) async {
   final challenge = await passkeys.createChallenge(ChallengeKind.registration);

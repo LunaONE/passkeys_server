@@ -11,7 +11,7 @@ environment:
 dependencies:
   dart_jsonwebtoken: ^3.0.0
   passkeys_server: ^1.0.0
-  relic: ^0.5.0
+  relic: ^0.6.0
   uuid: ^4.0.0
 
 dev_dependencies:
